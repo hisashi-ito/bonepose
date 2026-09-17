@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bonepose · OpenPose skeleton editor</title>
+<style>
+  :root { --fg:#1d1d1f; --dim:#6e6e73; --acc:#0a7aff; --acc2:#3d9bff; --glass:rgba(255,255,255,0.8); --glass-line:rgba(0,0,0,0.07); --hair:rgba(0,0,0,0.08); --shadow:0 6px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { color: var(--fg); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Hiragino Sans", system-ui, sans-serif; display: flex; flex-direction: column;
+    background: #ffffff; }
+  header { display: flex; align-items: baseline; gap: 14px; padding: 10px 18px; background: rgba(255,255,255,0.85); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-bottom: 1px solid var(--glass-line); box-shadow: 0 1px 0 var(--hair); position: relative; z-index: 2; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  main { flex: 1; display: grid; grid-template-columns: 262px 1fr 306px; gap: 12px; padding: 12px; min-height: 0; }
+  aside { overflow-y: auto; padding: 0; min-height: 0; scrollbar-width: thin; }
+  section.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 18px; background: #f5f5f7; border: 1px solid var(--glass-line); box-shadow: var(--shadow); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%); }
+  canvas#cv { display: block; touch-action: none; }
+  #status { position: absolute; left: 12px; right: 12px; bottom: 10px; padding: 5px 12px; font-size: 12px; color: var(--dim); background: rgba(255,255,255,0.9); border: 1px solid var(--glass-line); border-radius: 999px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+  fieldset { border: 1px solid var(--glass-line); border-radius: 16px; margin: 0 0 10px; padding: 8px 12px 11px; background: var(--glass); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); box-shadow: var(--shadow); }
+  legend { color: var(--dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 0 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 5px 0; }
+  .row label { display: flex; align-items: center; gap: 5px; }
+  button { background: rgba(255,255,255,0.85); color: var(--fg); border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; padding: 4px 11px; cursor: pointer; font: inherit; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.06); transition: background .12s, transform .08s, box-shadow .12s; }
+  button:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+  button:active { transform: translateY(1px); box-shadow: none; }
+  button.primary { background: linear-gradient(180deg, var(--acc2), var(--acc)); color: #fff; border-color: rgba(0,0,0,0.05); font-weight: 600; box-shadow: 0 2px 10px rgba(10,122,255,0.35); }
+  button.primary:hover { background: linear-gradient(180deg, #4ea6ff, #1a86ff); }
+  button.small { padding: 2px 9px; font-size: 12px; }
+  select, input[type=number], input[type=text] { background: rgba(255,255,255,0.9); color: var(--fg); border: 1px solid rgba(0,0,0,0.10); border-radius: 9px; padding: 4px 7px; font: inherit; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid rgba(10,122,255,0.35); outline-offset: 1px; }
+  input[type=number] { width: 66px; }
+  input[type=range] { width: 110px; accent-color: var(--acc); }
+  input[type=checkbox] { accent-color: var(--acc); width: 15px; height: 15px; }
+  input[type=file] { width: 100%; font-size: 11px; color: var(--dim); }
+  .row.sl { flex-wrap: nowrap; } .row.sl label { width: 178px; justify-content: space-between; }
+  ul#people { list-style: none; margin: 4px 0; padding: 0; }
+  ul#people li { display: flex; align-items: center; gap: 8px; padding: 4px 9px; border-radius: 10px; cursor: pointer; }
+  ul#people li:hover { background: rgba(0,0,0,0.04); }
+  ul#people li.sel { background: rgba(10,122,255,0.12); color: #0057c2; font-weight: 600; }
+  ul#people li .sw { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px rgba(10,122,255,0.18); }
+  ul#people li .nm { flex: 1; }
+  ul#lib { list-style: none; margin: 4px 0; padding: 0; max-height: 140px; overflow-y: auto; }
+  ul#lib li { display: flex; gap: 6px; align-items: center; padding: 2px 4px; }
+  ul#lib li .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  textarea { width: 100%; height: 220px; background: rgba(255,255,255,0.9); color: #3a3a3c; border: 1px solid rgba(0,0,0,0.10); border-radius: 10px; padding: 6px; font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace; resize: vertical; }
+  table.keys { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.keys td { padding: 3px 4px; vertical-align: top; border-bottom: 1px solid var(--hair); }
+  table.keys tr:last-child td { border-bottom: 0; }
+  table.keys td:first-child { white-space: nowrap; color: var(--acc); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
+  .hint { color: var(--dim); font-size: 11px; }
+  .val { color: var(--dim); min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: auto 60vh auto; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>bonepose</h1>
+  <span class="sub">OpenPose skeleton editor for ControlNet. Single HTML file, no server. Body 18 keypoints, optional hands, multiple people.</span> <a class="sub" href="https://github.com/hisashi-ito/bonepose" style="margin-left:auto;color:#0a7aff;text-decoration:none">GitHub</a>
+</header>
+<main>
+  <aside class="left">
+    <fieldset>
+      <legend>Canvas</legend>
+      <div class="row">
+        <input id="cw" type="number" min="64" max="4096" step="8" value="1024"> ×
+        <input id="ch" type="number" min="64" max="4096" step="8" value="1024">
+        <select id="sizes">
+          <option value="">preset</option>
+          <option value="512,512">512 × 512</option>
+          <option value="768,768">768 × 768</option>
+          <option value="1024,1024">1024 × 1024</option>
+          <option value="832,1216">832 × 1216 (portrait)</option>
+          <option value="1216,832">1216 × 832 (landscape)</option>
+          <option value="896,1152">896 × 1152</option>
+          <option value="1152,896">1152 × 896</option>
+        </select>
+      </div>
+      <div class="row"><label><input id="scalePoses" type="checkbox" checked> scale poses with canvas</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>People</legend>
+      <ul id="people"></ul>
+      <div class="row">
+        <button id="addPerson">+ Add</button>
+        <button id="dupPerson">Duplicate</button>
+        <button id="delPerson">Delete</button>
+        <button id="mirror">Mirror L/R</button>
+      </div>
+      <div class="row">
+        <select id="preset"></select>
+        <button id="applyPreset">Apply pose</button>
+      </div>
+      <div class="row">
+        <button id="addLHand" class="small">+ L hand</button>
+        <button id="addRHand" class="small">+ R hand</button>
+        <button id="delHands" class="small">remove hands</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Editing</legend>
+      <div class="row"><label><input id="lock" type="checkbox"> lock bone lengths <span class="hint">(L)</span></label></div>
+      <div class="row"><label><input id="sym" type="checkbox"> symmetric edit <span class="hint">(S)</span></label></div>
+      <div class="row hint">Hold Ctrl while dragging to snap the bone angle to 15°. Hold Alt to change a bone's length (lock mode).</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Transform selected person</legend>
+      <div class="row sl"><label>rotate <input id="rot" type="range" min="-180" max="180" value="0" step="1"></label><span class="val" id="rotv">0°</span></div>
+      <div class="row sl"><label>turn <input id="turn" type="range" min="-90" max="90" value="0" step="1"></label><span class="val" id="turnv">0°</span></div>
+      <div class="row sl"><label>scale <input id="scl" type="range" min="25" max="200" value="100" step="1"></label><span class="val" id="sclv">100%</span></div>
+      <div class="row"><button id="center" class="small">move to center</button><button id="resetXf" class="small">reset sliders</button></div>
+      <div class="row hint">turn approximates rotation about the vertical axis. Values bake into the joints when you drag or edit anything else.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>View</legend>
+      <div class="row"><label><input id="grid" type="checkbox" checked> grid <span class="hint">(G)</span></label> <button id="fit" class="small">fit (F)</button></div>
+      <div class="row"><input id="refFile" type="file" accept="image/*"></div>
+      <div class="row"><label>reference <input id="refOpacity" type="range" min="0" max="100" value="50"></label>
+        <select id="refFit"><option value="contain">contain</option><option value="cover">cover</option></select>
+        <button id="refClear" class="small">clear</button></div>
+      <div class="row hint">The reference image is for tracing only. It is never included in the exported PNG.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Export</legend>
+      <div class="row"><button id="png" class="primary">Download PNG</button><button id="copyPng">Copy PNG</button></div>
+      <div class="row"><button id="dlJson">Download JSON</button><input id="jsonFile" type="file" accept=".json,application/json" style="width:auto"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Library (this browser)</legend>
+      <div class="row"><button id="libSave" class="small">save current</button></div>
+      <ul id="lib"></ul>
+    </fieldset>
+  </aside>
+
+  <section class="stage">
+    <canvas id="cv"></canvas>
+    <div id="status"></div>
+  </section>
+
+  <aside class="right">
+    <fieldset>
+      <legend>Controls</legend>
+      <table class="keys">
+        <tr><td>drag joint</td><td>move it (free mode) or rotate the bone with its children (lock mode)</td></tr>
+        <tr><td>shift + drag</td><td>move the whole person</td></tr>
+        <tr><td>right drag</td><td>move the person under the cursor, or pan</td></tr>
+        <tr><td>drag empty / wheel</td><td>pan / zoom</td></tr>
+        <tr><td>double-click</td><td>hide or show a joint (hidden joints export as 0,0,0)</td></tr>
+        <tr><td>Del · H</td><td>hide or show the selected joint</td></tr>
+        <tr><td>arrows</td><td>nudge selected joint by 1 px (shift: 10 px)</td></tr>
+        <tr><td>Ctrl+Z / Ctrl+Y</td><td>undo / redo</td></tr>
+        <tr><td>Ctrl+D</td><td>duplicate selected person</td></tr>
+        <tr><td>L · S · G · F</td><td>lock lengths · symmetric · grid · fit view</td></tr>
+        <tr><td>Esc</td><td>deselect</td></tr>
+      </table>
+    </fieldset>
+    <fieldset>
+      <legend>OpenPose JSON</legend>
+      <div class="hint">Same format as the ControlNet / sd-webui-openpose-editor pose JSON (pixel coordinates, x y c triplets). Editable: press Apply to load what you typed.</div>
+      <textarea id="json" spellcheck="false"></textarea>
+      <div class="row"><button id="applyJson" class="small">Apply</button><button id="copyJson" class="small">Copy</button></div>
+    </fieldset>
+  </aside>
+</main>
+<script>
+(() => {
+"use strict";
+// ---------- OpenPose conventions ----------
+// 0 nose 1 neck 2 Rsho 3 Relb 4 Rwri 5 Lsho 6 Lelb 7 Lwri 8 Rhip 9 Rkne 10 Rank 11 Lhip 12 Lkne 13 Lank 14 Reye 15 Leye 16 Rear 17 Lear
+// "R" is the subject's right, which appears on the left of the image when the subject faces the viewer.
+const LIMBS = [[1,2],[1,5],[2,3],[3,4],[5,6],[6,7],[1,8],[8,9],[9,10],[1,11],[11,12],[12,13],[1,0],[0,14],[14,16],[0,15],[15,17]];
+const COLORS = ["#ff0000","#ff5500","#ffaa00","#ffff00","#aaff00","#55ff00","#00ff00","#00ff55","#00ffaa","#00ffff","#00aaff","#0055ff","#0000ff","#5500ff","#aa00ff","#ff00ff","#ff00aa","#ff0055"];
+const NAMES = ["nose","neck","R shoulder","R elbow","R wrist","L shoulder","L elbow","L wrist","R hip","R knee","R ankle","L hip","L knee","L ankle","R eye","L eye","R ear","L ear"];
+const BODY_PARENT = {0:1,14:0,15:0,16:14,17:15,2:1,3:2,4:3,5:1,6:5,7:6,8:1,9:8,10:9,11:1,12:11,13:12};
+const MIRROR = [[2,5],[3,6],[4,7],[8,11],[9,12],[10,13],[14,15],[16,17]];
+const MIRROR_OF = {}; MIRROR.forEach(([a,b]) => { MIRROR_OF[a] = b; MIRROR_OF[b] = a; });
+const LEFT_JOINTS = new Set([5,6,7,11,12,13,15,17]), RIGHT_JOINTS = new Set([2,3,4,8,9,10,14,16]);
+const HAND_EDGES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]];
+const HAND_PARENT = {}; HAND_EDGES.forEach(([a,b]) => { HAND_PARENT[b] = a; });
+const HAND_NAMES = ["wrist","thumb 1","thumb 2","thumb 3","thumb tip","index 1","index 2","index 3","index tip","middle 1","middle 2","middle 3","middle tip","ring 1","ring 2","ring 3","ring tip","pinky 1","pinky 2","pinky 3","pinky tip"];
+// right hand, fingers up, wrist at the origin, middle fingertip at distance 1
+const HAND_TEMPLATE = [[0,0],[0.22,-0.18],[0.40,-0.36],[0.52,-0.50],[0.62,-0.62],[0.20,-0.55],[0.24,-0.74],[0.26,-0.88],[0.28,-1.00],[0.03,-0.55],[0.04,-0.75],[0.05,-0.89],[0.05,-1.00],[-0.12,-0.53],[-0.15,-0.72],[-0.17,-0.85],[-0.18,-0.95],[-0.26,-0.47],[-0.31,-0.62],[-0.34,-0.73],[-0.37,-0.83]];
+const HAND_OF_WRIST = {4: "rhand", 7: "lhand"}, WRIST_OF_HAND = {rhand: 4, lhand: 7};
+
+// ---------- presets (normalized to a unit square) ----------
+const head = (nx, ny) => [[nx-0.02, ny-0.02],[nx+0.02, ny-0.02],[nx-0.045, ny-0.005],[nx+0.045, ny-0.005]];
+const P = (body14) => body14.concat(head(body14[0][0], body14[0][1]));
+const PRESETS = {
+  "stand":    P([[0.50,0.19],[0.50,0.30],[0.42,0.31],[0.40,0.46],[0.39,0.60],[0.58,0.31],[0.60,0.46],[0.61,0.60],[0.455,0.57],[0.45,0.76],[0.44,0.94],[0.545,0.57],[0.55,0.76],[0.56,0.94]]),
+  "T-pose":   P([[0.50,0.19],[0.50,0.29],[0.42,0.29],[0.27,0.29],[0.12,0.29],[0.58,0.29],[0.73,0.29],[0.88,0.29],[0.455,0.55],[0.40,0.74],[0.33,0.92],[0.545,0.55],[0.60,0.74],[0.67,0.92]]),
+  "peace":    P([[0.50,0.19],[0.50,0.30],[0.41,0.31],[0.35,0.44],[0.415,0.23],[0.59,0.31],[0.67,0.42],[0.585,0.55],[0.455,0.57],[0.42,0.76],[0.40,0.94],[0.545,0.57],[0.585,0.76],[0.61,0.94]]),
+  "cheek":    P([[0.50,0.19],[0.50,0.30],[0.41,0.31],[0.36,0.42],[0.43,0.24],[0.59,0.31],[0.66,0.44],[0.60,0.56],[0.455,0.57],[0.43,0.76],[0.41,0.94],[0.545,0.57],[0.575,0.76],[0.60,0.94]]),
+  "arms up":  P([[0.50,0.19],[0.50,0.30],[0.42,0.31],[0.36,0.20],[0.31,0.09],[0.58,0.31],[0.64,0.20],[0.69,0.09],[0.455,0.57],[0.45,0.76],[0.44,0.94],[0.545,0.57],[0.55,0.76],[0.56,0.94]]),
+  "wave":     P([[0.50,0.19],[0.50,0.30],[0.42,0.31],[0.36,0.20],[0.40,0.09],[0.58,0.31],[0.60,0.46],[0.61,0.60],[0.455,0.57],[0.45,0.76],[0.44,0.94],[0.545,0.57],[0.55,0.76],[0.56,0.94]]),
+  "walk":     P([[0.50,0.19],[0.50,0.30],[0.42,0.31],[0.38,0.44],[0.42,0.55],[0.58,0.31],[0.61,0.45],[0.57,0.58],[0.455,0.57],[0.40,0.74],[0.36,0.90],[0.545,0.57],[0.57,0.75],[0.60,0.93]]),
+  "run":      P([[0.52,0.20],[0.51,0.31],[0.43,0.32],[0.36,0.40],[0.40,0.28],[0.59,0.32],[0.66,0.43],[0.62,0.55],[0.46,0.57],[0.38,0.70],[0.30,0.78],[0.55,0.57],[0.62,0.72],[0.66,0.90]]),
+  "sit":      P([[0.50,0.22],[0.50,0.33],[0.42,0.34],[0.39,0.47],[0.43,0.57],[0.58,0.34],[0.61,0.47],[0.57,0.57],[0.455,0.60],[0.40,0.62],[0.40,0.85],[0.545,0.60],[0.60,0.62],[0.60,0.85]]),
+};
+
+// ---------- state ----------
+let S = { w: 1024, h: 1024, people: [] };
+let sel = { p: -1, part: null, i: -1 };
+let hover = null;
+const opts = { lock: false, sym: false, grid: true };
+const ref = { img: null, opacity: 0.5, fit: "contain" };
+const view = { s: 1, tx: 0, ty: 0 };
+let history = [], future = [];
+let xf = null;               // { p, base } while sliders are active
+const $ = id => document.getElementById(id);
+const deep = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const mn = () => Math.min(S.w, S.h);
+
+function personFromPreset(name, offset = 0) {
+  const s = mn();
+  const body = PRESETS[name].map(([x, y]) => [S.w / 2 + (x - 0.5) * s + offset, S.h / 2 + (y - 0.5) * s, 1]);
+  return { name: "", body, lhand: null, rhand: null, face: null };
+}
+function partsOf(p) { return ["body", "lhand", "rhand", "face"].filter(k => p[k]); }
+function parentOf(p, part, i) {
+  if (part === "body") return i in BODY_PARENT ? ["body", BODY_PARENT[i]] : null;
+  if (part === "lhand" || part === "rhand") return i > 0 ? [part, HAND_PARENT[i]] : ["body", WRIST_OF_HAND[part]];
+  return null;
+}
+function childrenOf(p, part, i) {
+  const out = [];
+  if (part === "body") {
+    for (const k in BODY_PARENT) if (BODY_PARENT[k] === i) out.push(["body", +k]);
+    const hp = HAND_OF_WRIST[i]; if (hp && p[hp]) out.push([hp, 0]);
+  } else if (part === "lhand" || part === "rhand") {
+    for (const k in HAND_PARENT) if (HAND_PARENT[k] === i) out.push([part, +k]);
+  }
+  return out;
+}
+function subtree(p, part, i) {           // node and all its descendants
+  const out = [[part, i]], q = [[part, i]];
+  while (q.length) { const [pt, k] = q.pop(); for (const c of childrenOf(p, pt, k)) { out.push(c); q.push(c); } }
+  return out;
+}
+
+// ---------- history ----------
+let current = "";           // JSON of the last committed state
+function commit() {
+  history.push(current); if (history.length > 200) history.shift();
+  current = JSON.stringify(S); future = []; updateJSON(); renderPeople();
+}
+function undo() { if (!history.length) return; future.push(current); current = history.pop(); S = JSON.parse(current); afterRestore(); }
+function redo() { if (!future.length) return; history.push(current); current = future.pop(); S = JSON.parse(current); afterRestore(); }
+function afterRestore() { xf = null; resetSliders(); if (sel.p >= S.people.length) sel = { p: S.people.length - 1, part: null, i: -1 }; $("cw").value = S.w; $("ch").value = S.h; updateJSON(); renderPeople(); draw(); }
+
+// ---------- transforms of a whole person ----------
+function centroid(p) {
+  const pts = p.body.filter(q => q[2] > 0); const a = pts.length ? pts : p.body;
+  return [a.reduce((s, q) => s + q[0], 0) / a.length, a.reduce((s, q) => s + q[1], 0) / a.length];
+}
+function translatePerson(p, dx, dy) { for (const k of partsOf(p)) for (const q of p[k]) { q[0] += dx; q[1] += dy; } }
+function applySliders() {
+  if (!xf) return;
+  const p = S.people[xf.p]; if (!p) return;
+  const rot = +$("rot").value * Math.PI / 180, turn = +$("turn").value * Math.PI / 180, k = +$("scl").value / 100;
+  const [cx, cy] = centroid(xf.base), cT = Math.cos(turn), sT = Math.sin(turn), cR = Math.cos(rot), sR = Math.sin(rot), s = mn();
+  for (const part of partsOf(xf.base)) {
+    p[part] = xf.base[part].map((q, i) => {
+      const side = part === "body" ? (LEFT_JOINTS.has(i) ? 1 : RIGHT_JOINTS.has(i) ? -1 : 0) : part === "lhand" ? 1 : part === "rhand" ? -1 : 0;
+      let x = (q[0] - cx) * cT + side * 0.045 * s * sT, y = q[1] - cy;
+      x *= k; y *= k;
+      return [cx + x * cR - y * sR, cy + x * sR + y * cR, q[2]];
+    });
+  }
+}
+function sliderLabels() { $("rotv").textContent = $("rot").value + "°"; $("turnv").textContent = $("turn").value + "°"; $("sclv").textContent = $("scl").value + "%"; }
+function resetSliders() { $("rot").value = 0; $("turn").value = 0; $("scl").value = 100; sliderLabels(); }
+function bake() { xf = null; resetSliders(); }
+["rot", "turn", "scl"].forEach(id => {
+  $(id).addEventListener("input", () => {
+    if (sel.p < 0) { resetSliders(); return; }
+    if (!xf || xf.p !== sel.p) xf = { p: sel.p, base: deep(S.people[sel.p]) };
+    applySliders(); sliderLabels(); draw(); updateJSON();
+  });
+  $(id).addEventListener("change", () => { if (sel.p >= 0) commit(); });
+});
+$("resetXf").addEventListener("click", () => { if (xf) { S.people[xf.p] = deep(xf.base); } bake(); draw(); updateJSON(); });
+$("center").addEventListener("click", () => { const p = S.people[sel.p]; if (!p) return; bake(); const [cx, cy] = centroid(p); translatePerson(p, S.w / 2 - cx, S.h / 2 - cy); commit(); draw(); });
+
+// ---------- view ----------
+const cv = $("cv"), ctx = cv.getContext("2d"), stage = cv.parentElement;
+let dpr = 1;
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const W = stage.clientWidth, H = stage.clientHeight;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + "px"; cv.style.height = H + "px";
+  fit(); draw();
+}
+function fit() {
+  const W = stage.clientWidth, H = stage.clientHeight - 24;
+  view.s = Math.min((W - 40) / S.w, (H - 40) / S.h); view.tx = (W - S.w * view.s) / 2; view.ty = (H - S.h * view.s) / 2 + 4;
+}
+const toWorld = ([sx, sy]) => [(sx - view.tx) / view.s, (sy - view.ty) / view.s];
+const toScreen = ([x, y]) => [x * view.s + view.tx, y * view.s + view.ty];
+const evPt = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+new ResizeObserver(resize).observe(stage);
+
+// ---------- rendering ----------
+function drawSkeleton(g, people, forExport) {
+  const m = mn(), lw = Math.max(4, m / 100), r = Math.max(4, m / 96), hlw = Math.max(1.5, m / 300), hr = Math.max(2, m / 210), fr = Math.max(2, m / 170);
+  g.lineCap = "round";
+  for (const p of people) {
+    LIMBS.forEach(([a, b], i) => {
+      const A = p.body[a], B = p.body[b]; if (A[2] <= 0 || B[2] <= 0) return;
+      g.strokeStyle = COLORS[i]; g.lineWidth = lw; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+    });
+    p.body.forEach((q, i) => { if (q[2] <= 0) return; g.fillStyle = COLORS[i]; g.beginPath(); g.arc(q[0], q[1], r, 0, Math.PI * 2); g.fill(); });
+    for (const hk of ["lhand", "rhand"]) {
+      const hnd = p[hk]; if (!hnd) continue;
+      HAND_EDGES.forEach(([a, b], i) => {
+        const A = hnd[a], B = hnd[b]; if (A[2] <= 0 || B[2] <= 0) return;
+        g.strokeStyle = `hsl(${i * 18},100%,50%)`; g.lineWidth = hlw; g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+      });
+      g.fillStyle = "#0000ff";
+      hnd.forEach(q => { if (q[2] <= 0) return; g.beginPath(); g.arc(q[0], q[1], hr, 0, Math.PI * 2); g.fill(); });
+    }
+    if (p.face) { g.fillStyle = "#fff"; p.face.forEach(q => { if (q[2] <= 0) return; g.beginPath(); g.arc(q[0], q[1], fr, 0, Math.PI * 2); g.fill(); }); }
+  }
+}
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.tx, dpr * view.ty);
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, S.w, S.h);
+  if (ref.img) {
+    const iw = ref.img.naturalWidth, ih = ref.img.naturalHeight, k = ref.fit === "cover" ? Math.max(S.w / iw, S.h / ih) : Math.min(S.w / iw, S.h / ih);
+    const dw = iw * k, dh = ih * k; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, S.w, S.h); ctx.clip(); ctx.globalAlpha = ref.opacity;
+    ctx.drawImage(ref.img, (S.w - dw) / 2, (S.h - dh) / 2, dw, dh); ctx.restore();
+  }
+  if (opts.grid) {
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1 / view.s;
+    const step = mn() / 8;
+    for (let x = step; x < S.w; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, S.h); ctx.stroke(); }
+    for (let y = step; y < S.h; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(S.w, y); ctx.stroke(); }
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.beginPath(); ctx.moveTo(S.w / 2, 0); ctx.lineTo(S.w / 2, S.h); ctx.moveTo(0, S.h / 2); ctx.lineTo(S.w, S.h / 2); ctx.stroke();
+  }
+  drawSkeleton(ctx, S.people, false);
+  // overlays: joint handles
+  const rr = 9 / view.s, rs = 5 / view.s;
+  S.people.forEach((p, pi) => {
+    const isSel = pi === sel.p;
+    ctx.lineWidth = (isSel ? 1.5 : 1) / view.s;
+    for (const part of partsOf(p)) {
+      if (part === "face") continue;
+      const rad = part === "body" ? rr : rs;
+      p[part].forEach((q, i) => {
+        const h = hover && hover.p === pi && hover.part === part && hover.i === i, s = isSel && sel.part === part && sel.i === i;
+        ctx.strokeStyle = s ? "#ffffff" : h ? "#ffe066" : isSel ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.3)";
+        ctx.beginPath(); ctx.arc(q[0], q[1], q[2] > 0 ? rad : rad * 0.55, 0, Math.PI * 2); ctx.stroke();
+        if (q[2] <= 0) { ctx.beginPath(); ctx.moveTo(q[0] - rad * 0.4, q[1] - rad * 0.4); ctx.lineTo(q[0] + rad * 0.4, q[1] + rad * 0.4); ctx.stroke(); }
+      });
+    }
+    if (isSel) { const [cx, cy] = centroid(p); ctx.strokeStyle = "rgba(77,163,255,0.8)"; ctx.beginPath(); ctx.moveTo(cx - 6 / view.s, cy); ctx.lineTo(cx + 6 / view.s, cy); ctx.moveTo(cx, cy - 6 / view.s); ctx.lineTo(cx, cy + 6 / view.s); ctx.stroke(); }
+  });
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 1; const [ax, ay] = toScreen([0, 0]); ctx.strokeRect(ax * dpr - 0.5, ay * dpr - 0.5, S.w * view.s * dpr + 1, S.h * view.s * dpr + 1);
+  status();
+}
+function status(extra) {
+  let t = `${S.w}×${S.h}  zoom ${(view.s * 100).toFixed(0)}%  people ${S.people.length}  ${opts.lock ? "[lock lengths]" : "[free]"}${opts.sym ? " [symmetric]" : ""}`;
+  const n = hover || (sel.p >= 0 && sel.part ? sel : null);
+  if (n && S.people[n.p] && S.people[n.p][n.part]) {
+    const q = S.people[n.p][n.part][n.i], nm = n.part === "body" ? NAMES[n.i] : (n.part === "lhand" ? "L " : "R ") + HAND_NAMES[n.i];
+    t += `   ${n.part === "body" ? "" : ""}person ${n.p + 1} · ${nm} (${q[0].toFixed(0)}, ${q[1].toFixed(0)})${q[2] > 0 ? "" : " hidden"}`;
+  }
+  $("status").textContent = extra ? extra + "   " + t : t;
+}
+
+// ---------- hit testing ----------
+function hitJoint(sp) {
+  let best = null, bd = Infinity;
+  S.people.forEach((p, pi) => {
+    for (const part of partsOf(p)) {
+      if (part === "face") continue;
+      const th = (part === "body" ? 14 : 9), pri = pi === sel.p ? -2 : 0;
+      p[part].forEach((q, i) => {
+        const [x, y] = toScreen(q); const d = Math.hypot(x - sp[0], y - sp[1]) + pri;
+        if (d < th && d < bd) { bd = d; best = { p: pi, part, i }; }
+      });
+    }
+  });
+  return best;
+}
+function hitPerson(sp) {
+  let best = -1, bd = 24;
+  S.people.forEach((p, pi) => {
+    LIMBS.forEach(([a, b]) => {
+      const A = toScreen(p.body[a]), B = toScreen(p.body[b]);
+      const l2 = (A[0] - B[0]) ** 2 + (A[1] - B[1]) ** 2; let t = l2 ? (((sp[0] - A[0]) * (B[0] - A[0]) + (sp[1] - A[1]) * (B[1] - A[1])) / l2) : 0; t = clamp(t, 0, 1);
+      const d = Math.hypot(sp[0] - (A[0] + t * (B[0] - A[0])), sp[1] - (A[1] + t * (B[1] - A[1])));
+      if (d < bd) { bd = d; best = pi; }
+    });
+  });
+  return best;
+}
+
+// ---------- joint editing ----------
+function moveJoint(p, base, part, i, target, mods) {
+  // p: live person (mutated), base: copy at drag start, target: world point for the dragged joint
+  const par = parentOf(base, part, i);
+  const changed = [];
+  if (!opts.lock || mods.free) {
+    p[part][i][0] = target[0]; p[part][i][1] = target[1]; changed.push([part, i]);
+  } else if (!par) {
+    const dx = target[0] - base[part][i][0], dy = target[1] - base[part][i][1];
+    for (const k of partsOf(base)) p[k] = base[k].map(q => [q[0] + dx, q[1] + dy, q[2]]);
+    return null;                                   // whole person moved; symmetric edit not applicable
+  } else {
+    const P0 = base[par[0]][par[1]], J = base[part][i];
+    const ux = J[0] - P0[0], uy = J[1] - P0[1], len = Math.hypot(ux, uy) || 1;
+    const tx = target[0] - P0[0], ty = target[1] - P0[1];
+    const nodes = subtree(base, part, i);
+    if (mods.alt) {                                // stretch: slide the joint along its bone, children follow
+      const nl = Math.max(2, (tx * ux + ty * uy) / len);
+      const dx = ux / len * nl - ux, dy = uy / len * nl - uy;
+      for (const [pt, k] of nodes) { p[pt][k][0] = base[pt][k][0] + dx; p[pt][k][1] = base[pt][k][1] + dy; changed.push([pt, k]); }
+    } else {
+      let a = Math.atan2(ty, tx);
+      if (mods.snap) a = Math.round(a / (Math.PI / 12)) * (Math.PI / 12);
+      const th = a - Math.atan2(uy, ux), c = Math.cos(th), s = Math.sin(th);
+      for (const [pt, k] of nodes) {
+        const q = base[pt][k], x = q[0] - P0[0], y = q[1] - P0[1];
+        p[pt][k][0] = P0[0] + x * c - y * s; p[pt][k][1] = P0[1] + x * s + y * c; changed.push([pt, k]);
+      }
+    }
+  }
+  if (opts.sym) {
+    const ax = base.body[1][0];
+    for (const [pt, k] of changed) {
+      if (pt === "body") { const m = MIRROR_OF[k]; if (m !== undefined) { p.body[m][0] = 2 * ax - p.body[k][0]; p.body[m][1] = p.body[k][1]; } }
+      else { const other = pt === "lhand" ? "rhand" : "lhand"; if (p[other]) { p[other][k][0] = 2 * ax - p[pt][k][0]; p[other][k][1] = p[pt][k][1]; } }
+    }
+  }
+  return changed;
+}
+
+// ---------- pointer ----------
+let drag = null;   // {kind:'joint'|'person'|'pan', ...}
+cv.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("pointerdown", e => {
+  const sp = evPt(e), hit = hitJoint(sp);
+  cv.setPointerCapture(e.pointerId);
+  if (e.button === 1 || (e.button === 0 && !hit)) { drag = { kind: "pan", sp, tx: view.tx, ty: view.ty }; if (e.button === 0 && !hit) { sel = { p: sel.p, part: null, i: -1 }; draw(); } return; }
+  if (e.button === 2) {
+    const pi = hit ? hit.p : hitPerson(sp);
+    if (pi < 0) { drag = { kind: "pan", sp, tx: view.tx, ty: view.ty }; return; }
+    selectPerson(pi); bake();
+    drag = { kind: "person", p: pi, base: deep(S.people[pi]), wp: toWorld(sp) }; return;
+  }
+  if (e.button === 0 && hit) {
+    if (sel.p !== hit.p) selectPerson(hit.p);
+    sel = hit; bake();
+    if (e.shiftKey) drag = { kind: "person", p: hit.p, base: deep(S.people[hit.p]), wp: toWorld(sp) };
+    else drag = { kind: "joint", ...hit, base: deep(S.people[hit.p]), moved: false };
+    draw();
+  }
+});
+cv.addEventListener("pointermove", e => {
+  const sp = evPt(e);
+  if (!drag) { const h = hitJoint(sp); if (JSON.stringify(h) !== JSON.stringify(hover)) { hover = h; draw(); } else status(); return; }
+  if (drag.kind === "pan") { view.tx = drag.tx + sp[0] - drag.sp[0]; view.ty = drag.ty + sp[1] - drag.sp[1]; draw(); return; }
+  const wp = toWorld(sp), p = S.people[drag.p];
+  if (drag.kind === "person") { const dx = wp[0] - drag.wp[0], dy = wp[1] - drag.wp[1]; for (const k of partsOf(drag.base)) p[k] = drag.base[k].map(q => [q[0] + dx, q[1] + dy, q[2]]); drag.moved = true; draw(); updateJSON(); return; }
+  if (drag.kind === "joint") {
+    const t = opts.lock ? wp : [clamp(wp[0], 0, S.w), clamp(wp[1], 0, S.h)];
+    moveJoint(p, drag.base, drag.part, drag.i, t, { snap: e.ctrlKey || e.metaKey, alt: e.altKey });
+    drag.moved = true; draw(); updateJSON();
+  }
+});
+const endDrag = e => { if (!drag) return; const d = drag; drag = null; if (d.kind !== "pan" && d.moved) commit(); else if (d.kind !== "pan") draw(); };
+cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+cv.addEventListener("dblclick", e => { const hit = hitJoint(evPt(e)); if (!hit) return; toggleHidden(hit); });
+cv.addEventListener("wheel", e => {
+  e.preventDefault(); const sp = evPt(e), f = Math.pow(1.0015, -e.deltaY);
+  view.tx = sp[0] - (sp[0] - view.tx) * f; view.ty = sp[1] - (sp[1] - view.ty) * f; view.s *= f; draw();
+}, { passive: false });
+function toggleHidden(n) { const q = S.people[n.p][n.part][n.i]; q[2] = q[2] > 0 ? 0 : 1; bake(); commit(); draw(); }
+
+// ---------- keyboard ----------
+document.addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase(); if (tag === "input" || tag === "textarea" || tag === "select") return;
+  const k = e.key.toLowerCase(), c = e.ctrlKey || e.metaKey;
+  if (c && k === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if ((c && k === "y") || (c && k === "z" && e.shiftKey)) { e.preventDefault(); redo(); return; }
+  if (c && k === "d") { e.preventDefault(); duplicatePerson(); return; }
+  if (k === "escape") { sel = { p: sel.p, part: null, i: -1 }; draw(); return; }
+  if (k === "l") { $("lock").checked = opts.lock = !opts.lock; draw(); return; }
+  if (k === "s") { $("sym").checked = opts.sym = !opts.sym; draw(); return; }
+  if (k === "g") { $("grid").checked = opts.grid = !opts.grid; draw(); return; }
+  if (k === "f") { fit(); draw(); return; }
+  if ((k === "delete" || k === "backspace" || k === "h") && sel.part) { e.preventDefault(); toggleHidden(sel); return; }
+  if (k.startsWith("arrow") && sel.part) {
+    e.preventDefault(); const d = e.shiftKey ? 10 : 1, p = S.people[sel.p], q = p[sel.part][sel.i];
+    const t = [q[0] + (k === "arrowright" ? d : k === "arrowleft" ? -d : 0), q[1] + (k === "arrowdown" ? d : k === "arrowup" ? -d : 0)];
+    bake(); moveJoint(p, deep(p), sel.part, sel.i, t, { free: false }); commit(); draw();
+  }
+});
+
+// ---------- people ----------
+function selectPerson(pi) { if (sel.p !== pi) { bake(); } sel = { p: pi, part: null, i: -1 }; renderPeople(); }
+function renderPeople() {
+  const ul = $("people"); ul.innerHTML = "";
+  S.people.forEach((p, i) => {
+    const li = document.createElement("li"); li.className = i === sel.p ? "sel" : "";
+    li.innerHTML = `<span class="sw"></span><span class="nm">person ${i + 1}${p.lhand || p.rhand ? " · hands" : ""}${p.face ? " · face" : ""}</span>`;
+    li.addEventListener("click", () => { selectPerson(i); draw(); });
+    ul.appendChild(li);
+  });
+}
+function addPerson(presetName) {
+  bake(); const n = S.people.length, off = ((n % 5) - 2) * mn() * 0.18;
+  const p = personFromPreset(presetName || $("preset").value || "stand", n ? off : 0);
+  S.people.push(p); sel = { p: S.people.length - 1, part: null, i: -1 }; commit(); draw();
+}
+function duplicatePerson() { const p = S.people[sel.p]; if (!p) return; bake(); const c = deep(p); translatePerson(c, mn() * 0.08, 0); S.people.splice(sel.p + 1, 0, c); sel = { p: sel.p + 1, part: null, i: -1 }; commit(); draw(); }
+$("addPerson").addEventListener("click", () => addPerson());
+$("dupPerson").addEventListener("click", duplicatePerson);
+$("delPerson").addEventListener("click", () => { if (sel.p < 0) return; bake(); S.people.splice(sel.p, 1); sel = { p: Math.min(sel.p, S.people.length - 1), part: null, i: -1 }; commit(); draw(); });
+$("applyPreset").addEventListener("click", () => {
+  if (sel.p < 0) { addPerson($("preset").value); return; }
+  bake(); const p = S.people[sel.p], [cx, cy] = centroid(p), np = personFromPreset($("preset").value), [nx, ny] = centroid(np);
+  p.body = np.body.map(q => [q[0] + cx - nx, q[1] + cy - ny, 1]); p.lhand = p.rhand = null; commit(); draw();
+});
+$("mirror").addEventListener("click", () => {
+  const p = S.people[sel.p]; if (!p) return; bake();
+  const [cx] = centroid(p), flip = arr => arr.map(q => [2 * cx - q[0], q[1], q[2]]);
+  const b = flip(p.body); MIRROR.forEach(([a, c]) => { const t = b[a]; b[a] = b[c]; b[c] = t; }); p.body = b;
+  const l = p.lhand ? flip(p.lhand) : null, r = p.rhand ? flip(p.rhand) : null; p.lhand = r; p.rhand = l;
+  if (p.face) p.face = flip(p.face);
+  commit(); draw();
+});
+function addHand(p, which) {
+  const wi = WRIST_OF_HAND[which], ei = wi - 1, W = p.body[wi], E = p.body[ei];
+  const dx = W[0] - E[0], dy = W[1] - E[1], L = Math.max(10, Math.hypot(dx, dy) * 0.6), phi = Math.atan2(dy, dx) + Math.PI / 2, c = Math.cos(phi), s = Math.sin(phi), mx = which === "lhand" ? -1 : 1;
+  p[which] = HAND_TEMPLATE.map(([x, y]) => { x *= mx; return [W[0] + (x * c - y * s) * L, W[1] + (x * s + y * c) * L, 1]; });
+}
+$("addLHand").addEventListener("click", () => { const p = S.people[sel.p]; if (!p) return; bake(); addHand(p, "lhand"); commit(); draw(); });
+$("addRHand").addEventListener("click", () => { const p = S.people[sel.p]; if (!p) return; bake(); addHand(p, "rhand"); commit(); draw(); });
+$("delHands").addEventListener("click", () => { const p = S.people[sel.p]; if (!p) return; bake(); p.lhand = p.rhand = null; if (sel.part !== "body") sel.part = null; commit(); draw(); });
+Object.keys(PRESETS).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k; $("preset").appendChild(o); });
+
+// ---------- options ----------
+$("lock").addEventListener("change", e => { opts.lock = e.target.checked; draw(); });
+$("sym").addEventListener("change", e => { opts.sym = e.target.checked; draw(); });
+$("grid").addEventListener("change", e => { opts.grid = e.target.checked; draw(); });
+$("fit").addEventListener("click", () => { fit(); draw(); });
+$("refFile").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; const img = new Image(); img.onload = () => { ref.img = img; draw(); }; img.src = URL.createObjectURL(f); });
+$("refOpacity").addEventListener("input", e => { ref.opacity = e.target.value / 100; draw(); });
+$("refFit").addEventListener("change", e => { ref.fit = e.target.value; draw(); });
+$("refClear").addEventListener("click", () => { ref.img = null; $("refFile").value = ""; draw(); });
+
+function setCanvasSize(w, h) {
+  w = clamp(Math.round(w) || S.w, 64, 4096); h = clamp(Math.round(h) || S.h, 64, 4096);
+  if (w === S.w && h === S.h) return;
+  bake();
+  if ($("scalePoses").checked) { const kx = w / S.w, ky = h / S.h; for (const p of S.people) for (const k of partsOf(p)) for (const q of p[k]) { q[0] *= kx; q[1] *= ky; } }
+  S.w = w; S.h = h; $("cw").value = w; $("ch").value = h; commit(); fit(); draw();
+}
+$("cw").addEventListener("change", () => setCanvasSize(+$("cw").value, S.h));
+$("ch").addEventListener("change", () => setCanvasSize(S.w, +$("ch").value));
+$("sizes").addEventListener("change", e => { if (!e.target.value) return; const [w, h] = e.target.value.split(",").map(Number); setCanvasSize(w, h); e.target.value = ""; });
+
+// ---------- JSON ----------
+const flat = arr => arr.flatMap(q => q[2] > 0 ? [+q[0].toFixed(2), +q[1].toFixed(2), 1] : [0, 0, 0]);
+function toJSON() {
+  return { canvas_width: S.w, canvas_height: S.h, people: S.people.map(p => {
+    const o = { pose_keypoints_2d: flat(p.body) };
+    if (p.lhand) o.hand_left_keypoints_2d = flat(p.lhand);
+    if (p.rhand) o.hand_right_keypoints_2d = flat(p.rhand);
+    if (p.face) o.face_keypoints_2d = flat(p.face);
+    return o;
+  }) };
+}
+function updateJSON() { $("json").value = JSON.stringify(toJSON()); }
+function unflat(a, n) {
+  if (!Array.isArray(a) || a.length < n * 3) return null;
+  const out = []; for (let i = 0; i < n; i++) { const x = +a[3 * i], y = +a[3 * i + 1], c = +a[3 * i + 2]; out.push([x, y, (c > 0 && x >= 0 && y >= 0) ? 1 : 0]); }
+  return out.some(q => q[2] > 0) ? out : null;
+}
+function fromJSON(obj) {
+  if (Array.isArray(obj)) obj = obj[0];                      // a list of frames: take the first
+  if (!obj || !Array.isArray(obj.people)) throw new Error("no people[] array");
+  let w = +obj.canvas_width, h = +obj.canvas_height;
+  const people = obj.people.map(pp => {
+    const body = unflat(pp.pose_keypoints_2d, 18); if (!body) return null;
+    return { name: "", body, lhand: unflat(pp.hand_left_keypoints_2d, 21), rhand: unflat(pp.hand_right_keypoints_2d, 21), face: unflat(pp.face_keypoints_2d, 70) };
+  }).filter(Boolean);
+  if (!people.length) throw new Error("no usable person");
+  const maxc = Math.max(...people.flatMap(p => partsOf(p).flatMap(k => p[k].filter(q => q[2] > 0).flatMap(q => [q[0], q[1]]))));
+  if (!(w > 0 && h > 0)) { if (maxc <= 1.0) { w = S.w; h = S.h; } else { w = Math.ceil(maxc); h = w; } }
+  if (maxc <= 1.0) for (const p of people) for (const k of partsOf(p)) for (const q of p[k]) { q[0] *= w; q[1] *= h; }
+  bake(); S = { w, h, people }; sel = { p: 0, part: null, i: -1 }; $("cw").value = w; $("ch").value = h; commit(); fit(); draw();
+}
+$("applyJson").addEventListener("click", () => { try { fromJSON(JSON.parse($("json").value)); } catch (err) { alert("Could not load JSON: " + err.message); } });
+$("copyJson").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("json").value); status("JSON copied"); } catch { $("json").select(); document.execCommand("copy"); } });
+$("jsonFile").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { fromJSON(JSON.parse(t)); } catch (err) { alert("Could not load JSON: " + err.message); } }); e.target.value = ""; });
+function download(name, blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+$("dlJson").addEventListener("click", () => download(`openpose_${S.w}x${S.h}.json`, new Blob([JSON.stringify(toJSON(), null, 1)], { type: "application/json" })));
+
+// ---------- PNG ----------
+function renderPNG() {
+  const c = document.createElement("canvas"); c.width = S.w; c.height = S.h;
+  const g = c.getContext("2d"); g.fillStyle = "#000"; g.fillRect(0, 0, S.w, S.h); drawSkeleton(g, S.people, true); return c;
+}
+$("png").addEventListener("click", () => renderPNG().toBlob(b => download(`openpose_${S.w}x${S.h}.png`, b), "image/png"));
+$("copyPng").addEventListener("click", () => renderPNG().toBlob(async b => {
+  try { await navigator.clipboard.write([new ClipboardItem({ "image/png": b })]); status("PNG copied to clipboard"); }
+  catch (err) { alert("Clipboard copy is not available here (it needs https or localhost). Use Download PNG instead."); }
+}, "image/png"));
+
+// ---------- library (localStorage) ----------
+const LIB_KEY = "openpose-skeleton-editor.library";
+function loadLib() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || "[]"); } catch { return []; } }
+function saveLib(l) { try { localStorage.setItem(LIB_KEY, JSON.stringify(l)); } catch (err) { alert("Could not save: " + err.message); } }
+function renderLib() {
+  const ul = $("lib"); ul.innerHTML = "";
+  loadLib().forEach((e, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="nm" title="${e.w}×${e.h}, ${e.people.length} people">${e.name}</span><button class="small">load</button><button class="small">×</button>`;
+    const [bl, bd] = li.querySelectorAll("button");
+    bl.addEventListener("click", () => { fromJSON({ canvas_width: e.w, canvas_height: e.h, people: e.people }); });
+    bd.addEventListener("click", () => { const l = loadLib(); l.splice(i, 1); saveLib(l); renderLib(); });
+    ul.appendChild(li);
+  });
+}
+$("libSave").addEventListener("click", () => {
+  const name = prompt("Name for this pose set", `pose ${new Date().toLocaleString()}`); if (!name) return;
+  const l = loadLib(); l.push({ name, w: S.w, h: S.h, people: toJSON().people }); saveLib(l); renderLib();
+});
+
+// ---------- small API for embedding and tests ----------
+window.openposeEditor = { toJSON, fromJSON, renderPNG, get state() { return S; }, get view() { return view; }, get selection() { return sel; }, undo, redo, options: opts };
+
+// ---------- init ----------
+S.people.push(personFromPreset("stand")); sel = { p: 0, part: null, i: -1 };
+history = []; current = JSON.stringify(S); updateJSON(); renderPeople(); renderLib(); resize();
+})();
+</script>
+</body>
+</html>
