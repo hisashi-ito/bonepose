@@ -10,7 +10,7 @@ HOME = Path.home()
 WAI = HOME / "models/sdxl/wai/waiIllustriousSDXL_v160.safetensors"
 CN = HOME / "models/sdxl/xinsir-openpose"
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else ".")   # directory holding skel_<name>.png exported from bonepose
-BASE = "masterpiece, best quality, amazing quality, {subj}, medium hair, brown hair, brown eyes, serafuku, school uniform, {pose}, smile, looking at viewer, full body, simple background"
+BASE = "masterpiece, best quality, amazing quality, {subj}, medium hair, brown hair, brown eyes, serafuku, school uniform, {pose}, smile, looking at viewer, full body, light blue background"
 NEG = "bad quality, worst quality, worst detail, sketch, censor, nsfw, bad anatomy, bad hands, extra digits, deformed, ugly"
 JOBS = {
     "stand": ("1girl, solo", "standing, arms at sides"),

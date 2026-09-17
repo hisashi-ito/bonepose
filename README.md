@@ -12,7 +12,7 @@ The exported PNG is exactly what an OpenPose ControlNet expects as its hint imag
 
 ![gallery](docs/gallery.png)
 
-Top rows: skeletons drawn in bonepose (presets, one with both hands added). Bottom rows: images generated from those skeletons with WAI-illustrious-SDXL v16 and the xinsir OpenPose SDXL ControlNet through diffusers on an RTX 4080 (1024 × 1024, 25 steps, CFG 6, Euler a, seed 777, ControlNet weight 1.0 for the first 60 % of the steps; prompt "masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <pose tags>, smile, looking at viewer, full body, simple background"). The same skeleton PNGs work unchanged in Draw Things, A1111, Forge and ComfyUI. The script is `examples/generate_with_diffusers.py`.
+Top rows: skeletons drawn in bonepose (presets, one with both hands added). Bottom rows: images generated from those skeletons with WAI-illustrious-SDXL v16 and the xinsir OpenPose SDXL ControlNet through diffusers on an RTX 4080 (1024 × 1024, 25 steps, CFG 6, Euler a, seed 777, ControlNet weight 1.0 for the first 60 % of the steps; prompt "masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <pose tags>, smile, looking at viewer, full body, light blue background"). The same skeleton PNGs work unchanged in Draw Things, A1111, Forge and ComfyUI. The script is `examples/generate_with_diffusers.py`.
 
 ## Features
 
