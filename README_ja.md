@@ -12,7 +12,7 @@ HTML ファイル一枚の OpenPose 骨格エディタです。ControlNet 用の
 
 ![gallery](docs/gallery.png)
 
-上の段が bonepose で描いた骨格（プリセット。1 枚は両手を付けたもの）、下の段がその骨格から生成した画像です。生成は WAI-illustrious-SDXL v16 と xinsir の OpenPose SDXL ControlNet を diffusers で RTX 4080 上で動かしました（1024 × 1024、25 ステップ、CFG 6、Euler a、seed 777、ControlNet の重み 1.0 を最初の 60 % のステップに適用。プロンプトは「masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <ポーズのタグ>, smile, looking at viewer, full body, simple background」）。同じ骨格 PNG は Draw Things、A1111、Forge、ComfyUI でもそのまま使えます。
+上の段が bonepose で描いた骨格（プリセット。1 枚は両手を付けたもの）、下の段がその骨格から生成した画像です。生成は WAI-illustrious-SDXL v16 と xinsir の OpenPose SDXL ControlNet を diffusers で RTX 4080 上で動かしました（1024 × 1024、25 ステップ、CFG 6、Euler a、seed 777、ControlNet の重み 1.0 を最初の 60 % のステップに適用。プロンプトは「masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <ポーズのタグ>, smile, looking at viewer, full body, simple background」）。同じ骨格 PNG は Draw Things、A1111、Forge、ComfyUI でもそのまま使えます。 生成スクリプトは `examples/generate_with_diffusers.py` です。
 
 ## 機能
 

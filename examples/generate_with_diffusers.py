@@ -1,4 +1,4 @@
-"""Generate images from bonepose skeletons with WAI-illustrious (SDXL) + xinsir OpenPose ControlNet.
+"""Reproduces docs/gallery.png. Generate images from bonepose skeletons with WAI-illustrious (SDXL) + xinsir OpenPose ControlNet.
 Settings mirror the Draw Things fork docs: 1024x1024, 25 steps, CFG 6, Euler a, seed 777,
 ControlNet weight 1.0 applied for the first 60% of the steps."""
 import sys, json, torch
@@ -9,7 +9,7 @@ from pathlib import Path
 HOME = Path.home()
 WAI = HOME / "models/sdxl/wai/waiIllustriousSDXL_v160.safetensors"
 CN = HOME / "models/sdxl/xinsir-openpose"
-OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "gen")
+OUT = Path(sys.argv[1] if len(sys.argv) > 1 else ".")   # directory holding skel_<name>.png exported from bonepose
 BASE = "masterpiece, best quality, amazing quality, {subj}, medium hair, brown hair, brown eyes, serafuku, school uniform, {pose}, smile, looking at viewer, full body, simple background"
 NEG = "bad quality, worst quality, worst detail, sketch, censor, nsfw, bad anatomy, bad hands, extra digits, deformed, ugly"
 JOBS = {
