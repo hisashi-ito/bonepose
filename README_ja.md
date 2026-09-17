@@ -1,4 +1,4 @@
-# bonepose
+<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="560"></p>
 
 HTML ファイル一枚の OpenPose 骨格エディタです。ControlNet 用の 18 点の骨格を描いて PNG で書き出します。サーバーもビルドも外部ライブラリも要りません。`index.html` をブラウザで開く（または下の公開ページを開く）だけで、関節をつまんで動かせます。
 
@@ -9,6 +9,10 @@ HTML ファイル一枚の OpenPose 骨格エディタです。ControlNet 用の
 書き出した PNG は、OpenPose ControlNet がヒント画像として受け取る形式そのものです（黒地に標準の 18 色の骨格）。[Draw Things CLI の `--pose-image` fork](https://github.com/hisashi-ito/draw-things-community) のために作りましたが、OpenPose ControlNet を使うものなら A1111、ComfyUI、Forge、Draw Things のどれでも使えます。
 
 ![export example](docs/export_example.png)
+
+![gallery](docs/gallery.png)
+
+上の段が bonepose で描いた骨格（プリセット。1 枚は両手を付けたもの）、下の段がその骨格から生成した画像です。生成は WAI-illustrious-SDXL v16 と xinsir の OpenPose SDXL ControlNet を diffusers で RTX 4080 上で動かしました（1024 × 1024、25 ステップ、CFG 6、Euler a、seed 777、ControlNet の重み 1.0 を最初の 60 % のステップに適用。プロンプトは「masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <ポーズのタグ>, smile, looking at viewer, full body, simple background」）。同じ骨格 PNG は Draw Things、A1111、Forge、ComfyUI でもそのまま使えます。
 
 ## 機能
 

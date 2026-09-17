@@ -1,4 +1,4 @@
-# bonepose
+<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="560"></p>
 
 OpenPose skeleton editor in a single HTML file. It draws the 18-keypoint OpenPose skeleton for ControlNet. No server, no build step, no dependencies. Open `index.html` in a browser (or use the hosted copy) and drag the joints.
 
@@ -9,6 +9,10 @@ OpenPose skeleton editor in a single HTML file. It draws the 18-keypoint OpenPos
 The exported PNG is exactly what an OpenPose ControlNet expects as its hint image: a black background with the standard 18-colour limb palette. It was built for the [Draw Things CLI `--pose-image` fork](https://github.com/hisashi-ito/draw-things-community), but it works with any OpenPose ControlNet (A1111, ComfyUI, Forge, Draw Things).
 
 ![export example](docs/export_example.png)
+
+![gallery](docs/gallery.png)
+
+Top rows: skeletons drawn in bonepose (presets, one with both hands added). Bottom rows: images generated from those skeletons with WAI-illustrious-SDXL v16 and the xinsir OpenPose SDXL ControlNet through diffusers on an RTX 4080 (1024 × 1024, 25 steps, CFG 6, Euler a, seed 777, ControlNet weight 1.0 for the first 60 % of the steps; prompt "masterpiece, best quality, amazing quality, 1girl, solo, medium hair, brown hair, brown eyes, serafuku, school uniform, <pose tags>, smile, looking at viewer, full body, simple background"). The same skeleton PNGs work unchanged in Draw Things, A1111, Forge and ComfyUI.
 
 ## Features
 
