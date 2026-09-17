@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="560"></p>
+<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="820"></p>
 
 OpenPose skeleton editor in a single HTML file. It draws the 18-keypoint OpenPose skeleton for ControlNet. No server, no build step, no dependencies. Open `index.html` in a browser (or use the hosted copy) and drag the joints.
 

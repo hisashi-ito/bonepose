@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="560"></p>
+<p align="center"><img src="docs/bonepose_logo.png" alt="bonepose" width="820"></p>
 
 HTML ファイル一枚の OpenPose 骨格エディタです。ControlNet 用の 18 点の骨格を描いて PNG で書き出します。サーバーもビルドも外部ライブラリも要りません。`index.html` をブラウザで開く（または下の公開ページを開く）だけで、関節をつまんで動かせます。
 
